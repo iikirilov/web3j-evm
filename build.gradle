@@ -2,6 +2,7 @@ buildscript {
 
     ext.kotlinLoggingVersion = '1.6.24'
     ext.logbackVersion = '1.2.3'
+    ext.web3jVersion = '4.3.0'
 
     ext.junitVersion = '5.3.2'
     ext.mockitoKotlinVersion = '1.6.0'
@@ -33,7 +34,8 @@ allprojects {
     dependencies {
         compile files('libs/core-1.1.1-SNAPSHOT-all.jar')
         compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
-                "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
+                "io.github.microutils:kotlin-logging:$kotlinLoggingVersion",
+                "org.web3j:core:$web3jVersion"
 
         testCompile "org.junit.jupiter:junit-jupiter-engine:$junitVersion",
                 "com.nhaarman:mockito-kotlin:$mockitoKotlinVersion",
