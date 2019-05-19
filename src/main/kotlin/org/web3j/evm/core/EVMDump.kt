@@ -19,4 +19,5 @@ import tech.pegasys.pantheon.ethereum.mainnet.TransactionProcessor
 class EVMDump(
     val transacitonReceipt: TransactionReceipt,
     val transaction: Transaction,
-    val result: TransactionProcessor.Result)
+    val result: TransactionProcessor.Result
+)
