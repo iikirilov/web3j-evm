@@ -10,11 +10,16 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.web3j.evm.core
+package org.web3j.evm.http
 
-import org.web3j.protocol.core.methods.response.TransactionReceipt
+import org.web3j.utils.Numeric
 
-class EVMDump(
-    val transacitonReceipt: TransactionReceipt,
-    val output: String
-)
+fun validateRunModel(run: EVMHttpServer.RunModel): Boolean {
+    if (!run.data.startsWith("0x")) {
+        return false
+    }
+    if (run.to != null && Numeric.hexStringToByteArray(run.to).size != 64) {
+        return false
+    }
+    return true
+}

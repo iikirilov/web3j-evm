@@ -42,6 +42,7 @@ allprojects {
                 "org.webjars:swagger-ui:3.17.4",
                 "de.nielsfalk.ktor:ktor-swagger:0.5.0",
                 "io.ktor:ktor-server-core:$ktorVersion",
+                "io.ktor:ktor-client-json-jvm:$ktorVersion",
                 "io.ktor:ktor-gson:$ktorVersion",
                 "io.ktor:ktor-server-netty:$ktorVersion",
                 "org.web3j:core:$web3jVersion"

@@ -48,7 +48,7 @@ class EVMTransactionManager(val evm: EVM, web3j: Web3j) :
         data: String,
         defaultBlockParameter: DefaultBlockParameter
     ): String {
-        return evm.run(to, data, BigInteger.ZERO).result.output.toString()
+        return evm.run(to, data, BigInteger.ZERO).output
     }
 
     @Throws(IOException::class, TransactionException::class)

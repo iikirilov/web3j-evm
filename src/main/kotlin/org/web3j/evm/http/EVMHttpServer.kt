@@ -12,9 +12,7 @@
  */
 package org.web3j.evm.http
 
-import de.nielsfalk.ktor.swagger.DefaultValue
 import de.nielsfalk.ktor.swagger.SwaggerSupport
-import de.nielsfalk.ktor.swagger.get
 import de.nielsfalk.ktor.swagger.ok
 import de.nielsfalk.ktor.swagger.post
 import de.nielsfalk.ktor.swagger.responds
@@ -35,20 +33,20 @@ import io.ktor.response.respond
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import mu.KotlinLogging
 import org.web3j.evm.core.EVM
 import org.web3j.evm.core.EVMDump
 import java.math.BigInteger
 
 class EVMHttpServer(val evm: EVM) {
+    private val logger = KotlinLogging.logger {}
 
     @Group("evm operations")
     @Location("/run")
-    class Run(
-        @DefaultValue("0x")
+    class Run
+    data class RunModel(
+        val to: String?,
         val data: String,
-        @DefaultValue("0xfe3b557e8fb62b89f4916b721be55ceb828dbd73")
-        val to: String,
-        @DefaultValue("0")
         val value: Int
     )
 
@@ -58,9 +56,7 @@ class EVMHttpServer(val evm: EVM) {
             install(Compression)
             install(CallLogging)
             install(ContentNegotiation) {
-                gson {
-                    setPrettyPrinting()
-                }
+                gson { setPrettyPrinting() }
             }
             install(Locations)
             install(SwaggerSupport) {
@@ -78,11 +74,16 @@ class EVMHttpServer(val evm: EVM) {
                 }
             }
             routing {
-                post<Run, Run>("run".responds(ok<EVMDump>())) { _, run ->
-                    call.respond(evm.run(
-                        run.to,
-                        run.data,
-                        BigInteger.valueOf(run.value.toLong())))
+                post<Run, RunModel>("run".responds(ok<EVMDump>())) { _, run ->
+                    logger.info { "validating request $run" }
+                    if (validateRunModel(run)) {
+                        call.respond(evm.run(
+                            run.to,
+                            run.data,
+                            BigInteger.valueOf(run.value.toLong())))
+                    } else {
+                        call.respond("")
+                    }
                 }
             }
         }

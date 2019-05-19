@@ -188,7 +188,7 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
                 convertStatus(result.status),
                 transaction.sender.toString(),
                 to ?: "",
-                logs, ""), transaction, result)
+                logs, ""), result.output.toString())
         } else {
             throw RuntimeException(result.validationResult.errorMessage)
         }
