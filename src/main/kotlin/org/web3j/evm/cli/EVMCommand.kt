@@ -18,11 +18,12 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.path
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
-import org.web3j.evm.EVM
-import org.web3j.evm.http.EVMService
+import org.web3j.evm.core.EVM
+import org.web3j.evm.http.EVMHttpServer
 import java.math.BigInteger
 import java.nio.file.Path
 
@@ -60,10 +61,10 @@ class EVMCommand(args: Array<String>) : CliktCommand() {
             .genesisConfigFile(genesisConfigFile)
                 .build()
 
-        EVMService(evm)
+        EVMHttpServer(evm)
     }
 }
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) = runBlocking<Unit> {
     EVMCommand(args)
 }

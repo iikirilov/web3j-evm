@@ -10,9 +10,10 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.web3j.evm
+package org.web3j.evm.core
 
 import com.google.common.collect.ImmutableSet
+import org.web3j.crypto.ContractUtils.generateContractAddress
 import org.web3j.crypto.Credentials
 import org.web3j.protocol.core.methods.response.Log
 import org.web3j.protocol.core.methods.response.TransactionReceipt
@@ -112,7 +113,7 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
         if (mutableWorldState.get(Address.fromHexString(credentials.address)).isEmpty) {
             val updater = mutableWorldState.updater()
             val account = updater.getOrCreate(Address.fromHexString(credentials.address))
-            account.setBalance(Wei.of(3000000000000000))
+            account.balance = Wei.of(3000000000000000)
             updater.commit()
             mutableWorldState.persist()
         }
@@ -131,10 +132,10 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
      * Returns a transaction receipt
      */
     fun run(
-        to: String,
+        to: String?,
         data: String,
         value: BigInteger
-    ): TransactionReceipt {
+    ): EVMDump {
 
         val worldUpdater = mutableWorldState.updater()
 
@@ -178,19 +179,25 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
                     "",
                     it.topics.map { topic -> topic.toString() })
             }
-            return TransactionReceipt(
+            return EVMDump(TransactionReceipt(
                 transaction.hash().toString(), "", "", "",
                 "" + (GAS_LIMIT - result.gasRemaining),
                 "" + (GAS_LIMIT - result.gasRemaining),
-                transaction.to.get().toString(),
+                resolveContractAddress(to, transaction),
                 mutableWorldState.rootHash().toString(),
                 convertStatus(result.status),
                 transaction.sender.toString(),
-                transaction.to.get().toString(),
-                logs, "")
+                to ?: "",
+                logs, ""), transaction, result)
         } else {
             throw RuntimeException(result.validationResult.errorMessage)
         }
+    }
+
+    private fun resolveContractAddress(to: String?, transaction: Transaction): String {
+        return to ?: generateContractAddress(
+            transaction.sender.toString(),
+            BigInteger.valueOf(transaction.nonce))
     }
 
     private fun getNonce(worldUpdater: WorldUpdater): Long {

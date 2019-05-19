@@ -16,6 +16,7 @@ import de.nielsfalk.ktor.swagger.DefaultValue
 import de.nielsfalk.ktor.swagger.SwaggerSupport
 import de.nielsfalk.ktor.swagger.get
 import de.nielsfalk.ktor.swagger.ok
+import de.nielsfalk.ktor.swagger.post
 import de.nielsfalk.ktor.swagger.responds
 import de.nielsfalk.ktor.swagger.version.shared.Contact
 import de.nielsfalk.ktor.swagger.version.shared.Group
@@ -34,13 +35,13 @@ import io.ktor.response.respond
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import org.web3j.evm.EVM
-import org.web3j.protocol.core.methods.response.TransactionReceipt
+import org.web3j.evm.core.EVM
+import org.web3j.evm.core.EVMDump
 import java.math.BigInteger
 
-class EVMService(val evm: EVM) {
+class EVMHttpServer(val evm: EVM) {
 
-    @Group("hello operations")
+    @Group("evm operations")
     @Location("/run")
     class Run(
         @DefaultValue("0x")
@@ -77,7 +78,7 @@ class EVMService(val evm: EVM) {
                 }
             }
             routing {
-                get<Run>("run".responds(ok<TransactionReceipt>())) { run ->
+                post<Run, Run>("run".responds(ok<EVMDump>())) { _, run ->
                     call.respond(evm.run(
                         run.to,
                         run.data,

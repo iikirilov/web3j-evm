@@ -12,33 +12,31 @@
  */
 package org.web3j.evm
 
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.web3j.crypto.Credentials
-import org.web3j.crypto.ECKeyPair
 import org.web3j.evm.core.EVM
+import org.web3j.greeter.Greeter
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.http.HttpService
+import org.web3j.tx.gas.DefaultGasProvider
 import tech.pegasys.pantheon.config.GenesisConfigFile
-import java.math.BigInteger
 
-class EvmTest {
+class GreeterTest {
 
     val PRIVATE_KEY = "8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
 
     @Test
-    fun transactionPassesTroughEvm() {
-
-        val keypair = ECKeyPair.create(BigInteger(PRIVATE_KEY, 16))
-
+    fun greeterDeploysInEvm() {
         val evm = EVM.builder()
-            .credentials(Credentials.create(keypair))
+            .credentials(Credentials.create(PRIVATE_KEY))
             .genesisConfigFile(GenesisConfigFile.development())
             .build()
+        val web3j = Web3j.build(HttpService())
+        val txManager = EVMTransactionManager(evm, web3j)
 
-        val result = evm.run("0x627306090abaB3A6e1400e9345bC60c78a8BEf57", "", BigInteger.ZERO)
-
-        val result1 = evm.run("0x627306090abaB3A6e1400e9345bC60c78a8BEf57", "", BigInteger.ZERO)
-
-        assertTrue(result.transacitonReceipt.isStatusOK)
-        assertTrue(result1.transacitonReceipt.isStatusOK)
+        val greeter = Greeter.deploy(web3j, txManager, DefaultGasProvider(), "Hello EVM").send()
+        val greeting = greeter.greet().send()
+        assertEquals("Hello EVM", greeting)
     }
 }
