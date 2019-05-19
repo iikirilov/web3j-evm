@@ -16,15 +16,13 @@ import com.google.common.collect.ImmutableSet
 import org.web3j.crypto.Credentials
 import org.web3j.protocol.core.methods.response.Log
 import org.web3j.protocol.core.methods.response.TransactionReceipt
+import tech.pegasys.pantheon.config.GenesisConfigFile
 import tech.pegasys.pantheon.crypto.SECP256K1
 import tech.pegasys.pantheon.ethereum.chain.Blockchain
 import tech.pegasys.pantheon.ethereum.chain.DefaultMutableBlockchain
+import tech.pegasys.pantheon.ethereum.chain.GenesisState
 import tech.pegasys.pantheon.ethereum.core.Address
 import tech.pegasys.pantheon.ethereum.core.Block
-import tech.pegasys.pantheon.ethereum.core.BlockBody
-import tech.pegasys.pantheon.ethereum.core.BlockHeader
-import tech.pegasys.pantheon.ethereum.core.Hash
-import tech.pegasys.pantheon.ethereum.core.LogsBloomFilter
 import tech.pegasys.pantheon.ethereum.core.MutableWorldState
 import tech.pegasys.pantheon.ethereum.core.Transaction
 import tech.pegasys.pantheon.ethereum.core.Wei
@@ -36,6 +34,7 @@ import tech.pegasys.pantheon.ethereum.mainnet.MainnetContractCreationProcessor
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetEvmRegistries
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetMessageCallProcessor
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetPrecompiledContractRegistries
+import tech.pegasys.pantheon.ethereum.mainnet.MainnetProtocolSchedule
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetProtocolSpecs
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetTransactionProcessor
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetTransactionValidator
@@ -43,7 +42,6 @@ import tech.pegasys.pantheon.ethereum.mainnet.PrecompiledContractConfiguration
 import tech.pegasys.pantheon.ethereum.mainnet.TransactionProcessor
 import tech.pegasys.pantheon.ethereum.storage.keyvalue.KeyValueStoragePrefixedKeyBlockchainStorage
 import tech.pegasys.pantheon.ethereum.storage.keyvalue.KeyValueStorageWorldStateStorage
-import tech.pegasys.pantheon.ethereum.trie.MerklePatriciaTrie
 import tech.pegasys.pantheon.ethereum.vm.BlockHashLookup
 import tech.pegasys.pantheon.ethereum.vm.DebugOperationTracer
 import tech.pegasys.pantheon.ethereum.vm.MessageFrame
@@ -56,17 +54,21 @@ import java.lang.RuntimeException
 import java.math.BigInteger
 import java.util.Optional
 
-class EVM(val credentials: Credentials) {
+class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
 
-    val GAS_PRICE: BigInteger = BigInteger.ONE
-    val GAS_LIMIT: Long = 30000000
-    val CHAIN_ID: BigInteger = BigInteger.ONE
+    companion object {
+        fun builder() = EVMBuilder()
+    }
 
-    val transactionProcessor: MainnetTransactionProcessor
-    val blockchain: Blockchain
-    val mutableWorldState: MutableWorldState
-    val mutableWorldStateUpdater: WorldUpdater
-    val genesisBlock: Block
+    private val GAS_PRICE: BigInteger = BigInteger.ONE
+    private val GAS_LIMIT: Long = 30000000
+    private val CHAIN_ID: BigInteger = BigInteger.ONE
+
+    private val transactionProcessor: MainnetTransactionProcessor
+    private val blockchain: Blockchain
+    private val mutableWorldState: MutableWorldState
+    private val mutableWorldStateUpdater: WorldUpdater
+    private val genesisBlock: Block
 
     init {
         val gasCalculator = ConstantinopleFixGasCalculator()
@@ -94,29 +96,7 @@ class EVM(val credentials: Credentials) {
             MessageFrame.DEFAULT_MAX_STACK_SIZE
         )
         val blockHeaderFunctions = MainnetBlockHeaderFunctions()
-        genesisBlock = Block(
-            BlockHeader(
-                Hash.fromHexString(
-                    "0x0000000000000000000000000000000000000000000000000000000000000000"),
-                Hash.wrap(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH),
-                Address.fromHexString("0x0000000000000000000000000000000000000000"),
-                Hash.wrap(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH),
-                Hash.wrap(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH),
-                Hash.wrap(MerklePatriciaTrie.EMPTY_TRIE_NODE_HASH),
-                LogsBloomFilter(),
-                UInt256.fromHexString("0x10000"),
-                0L,
-                UInt256.fromHexString("0x1fffffffffffff").toLong(),
-                0L,
-                0L,
-                BytesValue.fromHexString(
-                    "0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-                Hash.fromHexString(
-                    "0x0000000000000000000000000000000000000000000000000000000000000000"),
-                UInt256.fromHexString("0x42").toLong(),
-                blockHeaderFunctions
-            ), BlockBody(emptyList(), emptyList())
-        )
+
         val inMemoryKeyValueStorage = InMemoryKeyValueStorage()
         val keyValueStorageWorldStateStorage =
             KeyValueStorageWorldStateStorage(inMemoryKeyValueStorage)
@@ -124,11 +104,19 @@ class EVM(val credentials: Credentials) {
         mutableWorldState = worldStateArchive.mutable
         mutableWorldStateUpdater = mutableWorldState.updater()
 
-        // Give ether to user
-        val account = mutableWorldStateUpdater
-            .createAccount(Address.fromHexString(credentials.address))
-        account.incrementBalance(Wei.fromEth(100))
-        mutableWorldStateUpdater.commit()
+        val protocolSchedule = MainnetProtocolSchedule.fromConfig(genesisConfig.configOptions)
+        val genesisState = GenesisState.fromConfig(genesisConfig, protocolSchedule)
+        genesisState.writeStateTo(mutableWorldState)
+        mutableWorldState.persist()
+        genesisBlock = genesisState.block
+
+        if (mutableWorldState.get(Address.fromHexString(credentials.address)).isEmpty) {
+            val updater = mutableWorldState.updater()
+            val account = updater.getOrCreate(Address.fromHexString(credentials.address))
+            account.setBalance(Wei.of(3000000000000000))
+            updater.commit()
+            mutableWorldState.persist()
+        }
 
         blockchain = DefaultMutableBlockchain(
             genesisBlock,
@@ -144,12 +132,15 @@ class EVM(val credentials: Credentials) {
      * Returns a transaction receipt
      */
     fun run(
-        to: String?,
-        data: String?,
-        value: BigInteger?
+        to: String,
+        data: String,
+        value: BigInteger
     ): TransactionReceipt {
+
+        val worldUpdater = mutableWorldState.updater()
+
         val transaction = Transaction.builder()
-            .nonce(getNonce())
+            .nonce(getNonce(worldUpdater))
             .gasPrice(Wei.of(GAS_PRICE))
             .gasLimit(GAS_LIMIT)
             .to(Address.fromHexString(to))
@@ -162,7 +153,6 @@ class EVM(val credentials: Credentials) {
                     SECP256K1.PrivateKey.create(
                         credentials.ecKeyPair.privateKey)))
 
-        val worldUpdater = mutableWorldState.updater()
         val result = transactionProcessor.processTransaction(
             blockchain,
             worldUpdater,
@@ -204,8 +194,8 @@ class EVM(val credentials: Credentials) {
         }
     }
 
-    private fun getNonce(): Long {
-        return mutableWorldState.get(Address.fromHexString(credentials.address)).nonce
+    private fun getNonce(worldUpdater: WorldUpdater): Long {
+        return worldUpdater.getOrCreate(Address.fromHexString(credentials.address)).nonce
     }
 
     private fun convertStatus(status: TransactionProcessor.Result.Status): String {

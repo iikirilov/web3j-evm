@@ -3,6 +3,7 @@ buildscript {
     ext.kotlinLoggingVersion = '1.6.24'
     ext.logbackVersion = '1.2.3'
     ext.web3jVersion = '4.3.0'
+    ext.ktorVersion = '1.2.0'
 
     ext.junitVersion = '5.3.2'
     ext.mockitoKotlinVersion = '1.6.0'
@@ -32,9 +33,16 @@ allprojects {
     }
 
     dependencies {
-        compile files('libs/core-1.1.1-SNAPSHOT-all.jar')
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
+        implementation files('libs/core-1.1.1-SNAPSHOT-all.jar')
+        implementation "com.github.ajalt:clikt:2.0.0",
+                "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
                 "io.github.microutils:kotlin-logging:$kotlinLoggingVersion",
+                "org.slf4j:slf4j-simple:1.7.5",
+                "org.webjars:swagger-ui:3.17.4",
+                "de.nielsfalk.ktor:ktor-swagger:0.5.0",
+                "io.ktor:ktor-server-core:$ktorVersion",
+                "io.ktor:ktor-gson:$ktorVersion",
+                "io.ktor:ktor-server-netty:$ktorVersion",
                 "org.web3j:core:$web3jVersion"
 
         testCompile "org.junit.jupiter:junit-jupiter-engine:$junitVersion",

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
+import tech.pegasys.pantheon.config.GenesisConfigFile
 import java.math.BigInteger
 
 class EvmTest {
@@ -27,7 +28,10 @@ class EvmTest {
 
         val keypair = ECKeyPair.create(BigInteger(PRIVATE_KEY, 16))
 
-        val evm = EVM(Credentials.create(keypair))
+        val evm = EVM.builder()
+            .credentials(Credentials.create(keypair))
+            .genesisConfigFile(GenesisConfigFile.development())
+            .build()
 
         val result = evm.run("0x627306090abaB3A6e1400e9345bC60c78a8BEf57", "", BigInteger.ZERO)
 
