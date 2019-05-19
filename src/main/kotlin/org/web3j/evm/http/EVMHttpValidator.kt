@@ -18,7 +18,7 @@ fun validateRunModel(run: EVMHttpServer.RunModel): Boolean {
     if (!run.data.startsWith("0x")) {
         return false
     }
-    if (run.to != null && Numeric.hexStringToByteArray(run.to).size != 64) {
+    if (run.to != null && Numeric.hexStringToByteArray(run.to).size != 20) {
         return false
     }
     return true
