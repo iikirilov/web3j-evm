@@ -12,14 +12,10 @@
  */
 package org.web3j.evm.http
 
-import tech.pegasys.pantheon.ethereum.mainnet.ValidationResult
+data class RunModel(
+    val to: String? = null,
+    val data: String = "0x",
+    val value: Int = 0
+)
 
-fun validateRunModel(run: RunModel): ValidationResult<ParamInvalidReason> {
-    if (!run.data.startsWith("0x")) {
-        return ValidationResult.invalid(ParamInvalidReason("Invalid data field"))
-    }
-    if (run.to != null && run.to.length != 42) {
-        return ValidationResult.invalid(ParamInvalidReason("Invalid to address"))
-    }
-    return ValidationResult.valid()
-}
+data class ParamInvalidReason(val reason: String)

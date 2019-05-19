@@ -50,7 +50,6 @@ import tech.pegasys.pantheon.ethereum.worldstate.WorldStateArchive
 import tech.pegasys.pantheon.metrics.noop.NoOpMetricsSystem
 import tech.pegasys.pantheon.services.kvstore.InMemoryKeyValueStorage
 import tech.pegasys.pantheon.util.bytes.BytesValue
-import java.lang.RuntimeException
 import java.math.BigInteger
 import java.util.Optional
 
@@ -190,7 +189,7 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
                 to ?: "",
                 logs, ""), result.output.toString())
         } else {
-            throw RuntimeException(result.validationResult.errorMessage)
+            throw EVMException(result)
         }
     }
 

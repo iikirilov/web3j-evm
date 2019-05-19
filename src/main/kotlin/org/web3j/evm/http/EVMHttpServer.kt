@@ -13,6 +13,7 @@
 package org.web3j.evm.http
 
 import de.nielsfalk.ktor.swagger.SwaggerSupport
+import de.nielsfalk.ktor.swagger.badRequest
 import de.nielsfalk.ktor.swagger.ok
 import de.nielsfalk.ktor.swagger.post
 import de.nielsfalk.ktor.swagger.responds
@@ -27,15 +28,18 @@ import io.ktor.features.Compression
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.DefaultHeaders
 import io.ktor.gson.gson
+import io.ktor.http.HttpStatusCode
 import io.ktor.locations.Location
 import io.ktor.locations.Locations
 import io.ktor.response.respond
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.web3j.evm.core.EVM
 import org.web3j.evm.core.EVMDump
+import org.web3j.evm.core.EVMException
 import java.math.BigInteger
 
 class EVMHttpServer(val evm: EVM) {
@@ -44,11 +48,6 @@ class EVMHttpServer(val evm: EVM) {
     @Group("evm operations")
     @Location("/run")
     class Run
-    data class RunModel(
-        val to: String?,
-        val data: String,
-        val value: Int
-    )
 
     init {
         val server = embeddedServer(Netty, 8080) {
@@ -74,16 +73,26 @@ class EVMHttpServer(val evm: EVM) {
                 }
             }
             routing {
-                post<Run, RunModel>("run".responds(ok<EVMDump>())) { _, run ->
+                post<Run, RunModel>(
+                    "run".responds(
+                        ok<EVMDump>(),
+                        badRequest<ParamInvalidReason>())) { _, run ->
                     logger.info { "validating request $run" }
-                    if (validateRunModel(run)) {
-                        call.respond(evm.run(
-                            run.to,
-                            run.data,
-                            BigInteger.valueOf(run.value.toLong())))
-                    } else {
-                        call.respond("")
-                    }
+                    validateRunModel(run).either({ runBlocking {
+                        try {
+                            call.respond(
+                                evm.run(
+                                    run.to,
+                                    run.data,
+                                    BigInteger.valueOf(run.value.toLong())))
+                        } catch (e: EVMException) {
+                            call.respond(
+                                HttpStatusCode.BadRequest,
+                                e.result.validationResult.invalidReason)
+                        }
+                    } }, { errorReason -> runBlocking {
+                        call.respond(HttpStatusCode.BadRequest, errorReason)
+                    } })
                 }
             }
         }

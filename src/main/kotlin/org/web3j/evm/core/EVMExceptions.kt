@@ -10,16 +10,8 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.web3j.evm.http
+package org.web3j.evm.core
 
-import tech.pegasys.pantheon.ethereum.mainnet.ValidationResult
+import tech.pegasys.pantheon.ethereum.mainnet.MainnetTransactionProcessor
 
-fun validateRunModel(run: RunModel): ValidationResult<ParamInvalidReason> {
-    if (!run.data.startsWith("0x")) {
-        return ValidationResult.invalid(ParamInvalidReason("Invalid data field"))
-    }
-    if (run.to != null && run.to.length != 42) {
-        return ValidationResult.invalid(ParamInvalidReason("Invalid to address"))
-    }
-    return ValidationResult.valid()
-}
+class EVMException(val result: MainnetTransactionProcessor.Result) : Throwable()
