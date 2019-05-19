@@ -18,7 +18,6 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.path
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
@@ -53,7 +52,7 @@ class EVMCommand(args: Array<String>) : CliktCommand() {
 
     override fun run() {
 
-        logger.info {"starting web3j-evm" }
+        logger.info { "starting web3j-evm" }
 
         val genesisConfigFile = resolveGenesisConfig(genesis)
 
