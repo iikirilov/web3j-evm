@@ -49,7 +49,6 @@ import tech.pegasys.pantheon.ethereum.worldstate.WorldStateArchive
 import tech.pegasys.pantheon.metrics.noop.NoOpMetricsSystem
 import tech.pegasys.pantheon.services.kvstore.InMemoryKeyValueStorage
 import tech.pegasys.pantheon.util.bytes.BytesValue
-import tech.pegasys.pantheon.util.uint.UInt256
 import java.lang.RuntimeException
 import java.math.BigInteger
 import java.util.Optional

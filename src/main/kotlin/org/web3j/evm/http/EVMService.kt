@@ -30,7 +30,6 @@ import io.ktor.features.DefaultHeaders
 import io.ktor.gson.gson
 import io.ktor.locations.Location
 import io.ktor.locations.Locations
-import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
@@ -38,7 +37,6 @@ import io.ktor.server.netty.Netty
 import org.web3j.evm.EVM
 import org.web3j.protocol.core.methods.response.TransactionReceipt
 import java.math.BigInteger
-
 
 class EVMService(val evm: EVM) {
 
@@ -50,7 +48,8 @@ class EVMService(val evm: EVM) {
         @DefaultValue("0xfe3b557e8fb62b89f4916b721be55ceb828dbd73")
         val to: String,
         @DefaultValue("0")
-        val value: Int)
+        val value: Int
+    )
 
     init {
         val server = embeddedServer(Netty, 8080) {

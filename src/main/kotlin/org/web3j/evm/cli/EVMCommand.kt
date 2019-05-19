@@ -18,7 +18,6 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.path
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.web3j.crypto.Credentials
 import org.web3j.crypto.ECKeyPair
@@ -38,9 +37,7 @@ class EVMCommand(args: Array<String>) : CliktCommand() {
     val genesis: Path?
             by option(help = "genesis file config")
                 .path()
-                .validate {
-                    validatePath(it, this::fail)
-    }
+                .validate { validatePath(it, this::fail) }
 
     val signingKey: BigInteger
             by option(help = "ethereum private key for signing")
@@ -53,7 +50,7 @@ class EVMCommand(args: Array<String>) : CliktCommand() {
 
     override fun run() {
 
-        logger.info {"starting web3j-evm" }
+        logger.info { "starting web3j-evm" }
 
         val genesisConfigFile = resolveGenesisConfig(genesis)
 
