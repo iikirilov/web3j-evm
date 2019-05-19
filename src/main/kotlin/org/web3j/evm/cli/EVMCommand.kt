@@ -37,9 +37,7 @@ class EVMCommand(args: Array<String>) : CliktCommand() {
     val genesis: Path?
             by option(help = "genesis file config")
                 .path()
-                .validate {
-                    validatePath(it, this::fail)
-    }
+                .validate { validatePath(it, this::fail) }
 
     val signingKey: BigInteger
             by option(help = "ethereum private key for signing")
