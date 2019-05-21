@@ -47,7 +47,7 @@ class EVMHttpServer(val evm: EVM) {
 
     @Group("evm operations")
     @Location("/run")
-    class Run
+    class RunParam
 
     init {
         val server = embeddedServer(Netty, 8080) {
@@ -73,12 +73,12 @@ class EVMHttpServer(val evm: EVM) {
                 }
             }
             routing {
-                post<Run, RunModel>(
+                post<RunParam, RunBody>(
                     "run".responds(
                         ok<EVMDump>(),
                         badRequest<ParamInvalidReason>())) { _, run ->
                     logger.info { "validating request $run" }
-                    validateRunModel(run).either({ runBlocking {
+                    validateRunBody(run).either({ runBlocking {
                         try {
                             call.respond(
                                 evm.run(
@@ -88,7 +88,7 @@ class EVMHttpServer(val evm: EVM) {
                         } catch (e: EVMException) {
                             call.respond(
                                 HttpStatusCode.BadRequest,
-                                e.result.validationResult.invalidReason)
+                                e.result.validationResult)
                         }
                     } }, { errorReason -> runBlocking {
                         call.respond(HttpStatusCode.BadRequest, errorReason)

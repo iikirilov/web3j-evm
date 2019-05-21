@@ -12,6 +12,4 @@
  */
 package org.web3j.evm.core
 
-import tech.pegasys.pantheon.ethereum.mainnet.MainnetTransactionProcessor
-
-class EVMException(val result: MainnetTransactionProcessor.Result) : Throwable()
+class EVMException(val result: EVMTransactionProcessor.Result) : Throwable()

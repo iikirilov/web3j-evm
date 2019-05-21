@@ -37,7 +37,6 @@ import tech.pegasys.pantheon.ethereum.mainnet.MainnetMessageCallProcessor
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetPrecompiledContractRegistries
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetProtocolSchedule
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetProtocolSpecs
-import tech.pegasys.pantheon.ethereum.mainnet.MainnetTransactionProcessor
 import tech.pegasys.pantheon.ethereum.mainnet.MainnetTransactionValidator
 import tech.pegasys.pantheon.ethereum.mainnet.PrecompiledContractConfiguration
 import tech.pegasys.pantheon.ethereum.mainnet.TransactionProcessor
@@ -45,7 +44,6 @@ import tech.pegasys.pantheon.ethereum.storage.keyvalue.KeyValueStoragePrefixedKe
 import tech.pegasys.pantheon.ethereum.storage.keyvalue.KeyValueStorageWorldStateStorage
 import tech.pegasys.pantheon.ethereum.vm.BlockHashLookup
 import tech.pegasys.pantheon.ethereum.vm.DebugOperationTracer
-import tech.pegasys.pantheon.ethereum.vm.MessageFrame
 import tech.pegasys.pantheon.ethereum.worldstate.WorldStateArchive
 import tech.pegasys.pantheon.metrics.noop.NoOpMetricsSystem
 import tech.pegasys.pantheon.services.kvstore.InMemoryKeyValueStorage
@@ -63,7 +61,7 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
     private val GAS_LIMIT: Long = 30000000
     private val CHAIN_ID: BigInteger = BigInteger.ONE
 
-    private val transactionProcessor: MainnetTransactionProcessor
+    private val transactionProcessor: EVMTransactionProcessor
     private val blockchain: Blockchain
     private val mutableWorldState: MutableWorldState
     private val mutableWorldStateUpdater: WorldUpdater
@@ -71,7 +69,8 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
 
     init {
         val gasCalculator = ConstantinopleFixGasCalculator()
-        transactionProcessor = MainnetTransactionProcessor(
+
+        transactionProcessor = EVMTransactionProcessor(
             gasCalculator,
             MainnetTransactionValidator(
                 gasCalculator,
@@ -91,8 +90,7 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
                 ImmutableSet.of(
                     Address.fromHexString("0x0000000000000000000000000000000000000003")) //RIPEMD160_PRECOMPILE
             ),
-            false,
-            MessageFrame.DEFAULT_MAX_STACK_SIZE
+            false
         )
         val blockHeaderFunctions = MainnetBlockHeaderFunctions()
 
@@ -152,17 +150,19 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
                     SECP256K1.PrivateKey.create(
                         credentials.ecKeyPair.privateKey)))
 
+        val operationTracer = DebugOperationTracer(TraceOptions.DEFAULT)
+
         val result = transactionProcessor.processTransaction(
             blockchain,
             worldUpdater,
             genesisBlock.header,
             transaction,
             Address.fromHexString("0x0000000000000000000000000000000000000000"),
-            DebugOperationTracer(TraceOptions.DEFAULT),
+            operationTracer,
             BlockHashLookup(genesisBlock.header, blockchain),
             false)
 
-        if (!result.isInvalid) {
+        if (result.validationResult.isValid) {
             worldUpdater.commit()
             mutableWorldState.persist()
             val logs = result.logs.map {
@@ -187,7 +187,8 @@ class EVM(val credentials: Credentials, genesisConfig: GenesisConfigFile) {
                 convertStatus(result.status),
                 transaction.sender.toString(),
                 to ?: "",
-                logs, ""), result.output.toString())
+                logs, ""), result.output.toString(),
+                operationTracer.traceFrames.map { EVMTraceFrame(it) })
         } else {
             throw EVMException(result)
         }

@@ -12,10 +12,13 @@
  */
 package org.web3j.evm.http
 
-data class RunModel(
+data class RunBody(
     val to: String? = null,
     val data: String = "0x",
     val value: Int = 0
 )
 
-data class ParamInvalidReason(val reason: String)
+data class ParamInvalidReason(
+    val param: String,
+    val reason: String
+)

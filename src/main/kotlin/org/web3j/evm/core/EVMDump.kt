@@ -13,8 +13,38 @@
 package org.web3j.evm.core
 
 import org.web3j.protocol.core.methods.response.TransactionReceipt
+import tech.pegasys.pantheon.ethereum.core.Gas
+import tech.pegasys.pantheon.ethereum.debug.TraceFrame
+import tech.pegasys.pantheon.ethereum.vm.ExceptionalHaltReason
+import java.util.EnumSet
 
 class EVMDump(
     val transacitonReceipt: TransactionReceipt,
-    val output: String
+    val output: String,
+    val traceFrames: List<EVMTraceFrame>
 )
+
+class EVMTraceFrame(
+    val pc: Int,
+    val opcode: String,
+    val gasRemaining: Long,
+    val cost: Long,
+    val depth: Int,
+    val exceptionalHaltReasons: EnumSet<ExceptionalHaltReason>,
+    val stack: List<String>,
+    val memory: List<String>
+//    val storage: Map<UInt256, UInt256>
+) {
+    constructor(traceFrame: TraceFrame):
+            this(
+                traceFrame.pc,
+                traceFrame.opcode,
+                traceFrame.gasRemaining.toLong(),
+                traceFrame.gasCost.orElse(Gas.ZERO).toLong(),
+                traceFrame.depth,
+                traceFrame.exceptionalHaltReasons,
+                traceFrame.stack.orElse(arrayOf()).asList().map { it.toString() },
+                traceFrame.memory.orElse(arrayOf()).asList().map { it.toString() })
+//                traceFrame.storage.orElse(mapOf()))
+//    constructor(traceFrame: TraceFrame): this(traceFrame.pc, traceFrame.opcode, traceFrame.gasRemaining, traceFrame.depth, traceFrame.exceptionalHaltReasons)
+}
