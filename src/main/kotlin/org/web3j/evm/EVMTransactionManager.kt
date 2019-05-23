@@ -27,7 +27,7 @@ import java.math.BigInteger
 class EVMTransactionManager(val evm: EVM, web3j: Web3j) :
     TransactionManager(NoOpProcessor(web3j), "") {
 
-    val receipts = HashMap<String, TransactionReceipt>()
+    private val receipts = HashMap<String, TransactionReceipt>()
 
     override fun sendTransaction(
         gasPrice: BigInteger,
@@ -68,8 +68,8 @@ class EVMTransactionManager(val evm: EVM, web3j: Web3j) :
 
     private fun processResponse(ethSendTransaction: EthSendTransaction): TransactionReceipt {
         return receipts
-            .getOrElse(ethSendTransaction.transactionHash) {
-                throw RuntimeException("missing tx receipt")
-            }
+            .computeIfPresent(ethSendTransaction.transactionHash) {
+                    k, _ -> receipts.remove(k)
+            } ?: throw RuntimeException("missing tx receipt")
     }
 }
